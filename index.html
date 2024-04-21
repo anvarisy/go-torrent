@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload</title>
+</head>
+<body>
+<input type="file" id="fileInput" />
+<button onclick="uploadFile()">Upload</button>
+<button onclick="mergeFiles()">Merge Files</button>
+<script>
+    let uploadedChunks = 0;
+    let totalChunks = 0;
+
+    function uploadFile() {
+        let fileInput = document.getElementById('fileInput');
+        let file = fileInput.files[0];
+        let chunkSize = 1024 * 1024; // 1 MB chunk size (you can adjust this value)
+        let start = 0;
+
+        totalChunks = Math.ceil(file.size / chunkSize);
+        uploadedChunks = 0;
+
+        while (start < file.size) {
+            let end = Math.min(start + chunkSize, file.size);
+            let chunk = file.slice(start, end);
+
+            let formData = new FormData();
+            formData.append('file', chunk);
+            formData.append('index', Math.floor(start / chunkSize));
+
+            let xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:8080/upload', true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    uploadedChunks++;
+                    console.log('Chunk uploaded successfully');
+                    if (uploadedChunks === totalChunks) {
+                        console.log('All chunks uploaded');
+                    }
+                } else {
+                    console.log('Chunk upload failed');
+                }
+            };
+            xhr.send(formData);
+
+            start = end;
+        }
+    }
+
+    function mergeFiles() {
+        let filename = document.getElementById('fileInput').files[0].name;
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', 'http://localhost:8080/merge?filename=' + encodeURIComponent(filename), true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                console.log('File merged successfully');
+            } else {
+                console.log('File merge failed');
+            }
+        };
+        xhr.send();
+    }
+</script>
+</body>
+</html>
